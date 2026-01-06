@@ -162,6 +162,12 @@ On iOS, when connecting to QR codes or links sent via Insider email in Insider I
 
 **Important:** Make sure to replace `{YOUR_PARTNER_NAME}` in `app/+native-intent.tsx` with your actual Insider partner name. The path check should match your Insider deep link format (e.g., `insiderYOUR_PARTNER_NAME`).
 
+### Firebase Background Push Notifications
+
+To observe push notifications from Firebase when the app is killed, we've implemented a middleware solution in `index.js`. Additionally, we've configured the project's main entry point in `package.json` to use `index.js` instead of the default Expo Router entry. This file imports `expo-router/entry` to maintain Expo Router functionality while also registering a Firebase background message handler. This workaround ensures that push notifications are properly handled even when the app is not running in the foreground.
+
+ref: https://docs.expo.dev/router/installation/#custom-entry-point-to-initialize-and-load
+
 ## Project Structure
 
 ```

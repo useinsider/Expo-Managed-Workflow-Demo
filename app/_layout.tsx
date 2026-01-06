@@ -1,3 +1,4 @@
+import messaging from '@react-native-firebase/messaging';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +9,28 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect } from 'react';
+
+async function getToken() {
+  const token = await messaging().getToken();
+  console.log('FCM Token:', token);
+}
+
+async function requestNotificationPermission() {
+  try {
+    if (Platform.OS == "ios") {
+      const authStatus = await messaging().requestPermission();
+      const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED || authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      
+      if (enabled) {
+        console.log('Authorization status:', authStatus);
+      }
+    } else {
+      await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 async function requestLocationPermission() {
   try {
@@ -53,8 +76,8 @@ async function requestLocationPermission() {
 const initInsider = () => {
   // FIXME-INSIDER: Please change with your partner name and app group.
   RNInsider.init(
-    "{YOUR_PARTNER_NAME}",
-    "{YOUR_APP_GROUP}",
+    "sdktest",
+    "group.com.useinsider.mobile-ios",
     (type: any, data: any) => {
       switch (type) {
         case InsiderCallbackType.NOTIFICATION_OPEN:
@@ -84,6 +107,39 @@ const initInsider = () => {
   console.log("[INSIDER] initialized");
 };
 
+const setupFirebase = () => {
+  const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+    console.log(
+        "[FCM][onMessage]: A new FCM message arrived! :" +
+        JSON.stringify(remoteMessage)
+    );
+
+    if ((remoteMessage.data || {}).source === "Insider") {
+      RNInsider.handleNotification(remoteMessage.data);
+    }
+  });
+
+  messaging().onNotificationOpenedApp((remoteMessage) => {
+    console.log(
+        "[FCM][onNotificationOpenedApp]: Notification caused app to open:" +
+        JSON.stringify(remoteMessage)
+    );
+  });
+
+  messaging()
+      .getInitialNotification()
+      .then((remoteMessage) => {
+        if (remoteMessage) {
+          console.log(
+              "[FCM][getInitialNotification]: Notification caused app to open from quit state:",
+              remoteMessage.notification
+          );
+        }
+      });
+
+  return unsubscribe;
+}
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };
@@ -92,9 +148,14 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
+    const unsubscribe = setupFirebase();
+
     initInsider();
     
+    requestNotificationPermission();
     requestLocationPermission();
+
+    return unsubscribe;
   }, []);
 
   return (

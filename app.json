@@ -16,7 +16,8 @@
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide you with the best experience.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location to provide you with the best experience.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to provide you with the best experience."
-      }
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +44,22 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "forceStaticLinking": [
+              "RNFBAnalytics",
+              "RNFBApp",
+              "RNFBCrashlytics",
+              "RNFBInAppMessaging",
+              "RNFBInstallations",
+              "RNFBPerf"
+            ],
+            "useFrameworks": "static"
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -70,14 +87,8 @@
           "minimumDeploymentTarget": "12.0"
         }
       ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ]
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ],
     "experiments": {
       "typedRoutes": true,
