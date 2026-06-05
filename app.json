@@ -77,7 +77,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "./plugins/withAndroidRawSounds.js"
     ],
     "experiments": {
       "typedRoutes": true,
