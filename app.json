@@ -65,7 +65,7 @@
           "insiderAdvancedPush": true,
           "mode": "production",
           "developmentTeam": "{YOUR_DEVELOPMENT_TEAM}",
-          "minimumDeploymentTarget": "12.0"
+          "minimumDeploymentTarget": "16.4"
         }
       ],
       [
