@@ -1,0 +1,161 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: expo-managed-workflow-demo-run-tests-${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --registry=https://registry.npmjs.org --no-audit --no-fund
+
+      # Generates the gitignored typed-routes declarations; the diff check proves no tracked file was rewritten.
+      - name: Generate typed routes
+        run: |
+          npx expo customize tsconfig.json
+          git diff --exit-code
+
+      - name: Lint
+        run: npx expo lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit Tests
+        run: npx jest --ci
+
+  integration-android:
+    name: Integration (android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ARCHITECTURES: x86_64
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm install --registry=https://registry.npmjs.org --no-audit --no-fund
+
+      - name: Check Expo SDK compatibility
+        run: npx expo install --check
+
+      - name: Fill placeholders
+        run: node ci/fill-placeholders.js --ci
+
+      - name: Export bundles
+        run: npx expo export --output-dir "$RUNNER_TEMP/export"
+
+      - name: Prebuild
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Assert Insider plugin injections
+        run: |
+          set -euo pipefail
+          grep -F 'https://mobilesdk.useinsider.com/android' android/build.gradle
+          grep -F 'manifestPlaceholders = [partner: "cidummypartner"]' android/app/build.gradle
+
+      - name: Build
+        working-directory: android
+        run: ./gradlew :app:assembleDebug -PreactNativeArchitectures="$ARCHITECTURES"
+
+  integration-ios:
+    name: Integration (ios)
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DESTINATION: generic/platform=iOS Simulator
+      SCHEME: ExpoDemoMW
+      EXTENSIONS: |
+        InsiderNotificationService
+        InsiderNotificationContent
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --registry=https://registry.npmjs.org --no-audit --no-fund
+
+      - name: Fill placeholders
+        run: node ci/fill-placeholders.js --ci
+
+      - name: Prebuild
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Assert Insider plugin injections
+        run: |
+          set -euo pipefail
+          IFS=$'\n'
+          for extension in $EXTENSIONS; do
+            grep -F "PBXNativeTarget \"$extension\"" "ios/$SCHEME.xcodeproj/project.pbxproj"
+          done
+          grep -F '<string>insidercidummypartner</string>' "ios/$SCHEME/Info.plist"
+
+      - name: Install pods
+        working-directory: ios
+        run: pod install
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -workspace "ios/$SCHEME.xcworkspace" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination "$DESTINATION" \
+            -derivedDataPath "$RUNNER_TEMP/build" \
+            CODE_SIGNING_ALLOWED=NO
+
+  integration-tests:
+    name: Integration Tests
+    needs:
+      - integration-android
+      - integration-ios
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Integration Tests
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Platform results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done
