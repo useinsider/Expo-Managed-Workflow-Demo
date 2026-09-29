@@ -38,6 +38,16 @@ const UserIdentifiers = () => {
     console.log("[INSIDER][logout]: Method is triggered.");
   };
 
+  const logoutResettingInsiderID = () => {
+    let currentUser = RNInsider.getCurrentUser();
+
+    currentUser.logoutResettingInsiderID(null, (insiderID: string) => {
+      console.log("[INSIDER][insiderID]: ", insiderID);
+    });
+
+    console.log("[INSIDER][logoutResettingInsiderID]: Method is triggered.");
+  };
+
   return (
     <>
       <View style={styles.row}>
@@ -52,7 +62,7 @@ const UserIdentifiers = () => {
         <CustomButton
           text="Logout Resetting Insider ID"
           buttonStyle={{ backgroundColor: "#E57F74" }}
-          onPress={logout}
+          onPress={logoutResettingInsiderID}
         />
       </View>
     </>
