@@ -74,7 +74,6 @@ const RNInsider = {
   registerWithQuietPermission: recorder('registerWithQuietPermission'),
   setActiveForegroundPushView: recorder('setActiveForegroundPushView'),
   startTrackingGeofence: recorder('startTrackingGeofence'),
-  enableIDFACollection: recorder('enableIDFACollection'),
   enableIpCollection: recorder('enableIpCollection'),
   enableLocationCollection: recorder('enableLocationCollection'),
   enableCarrierCollection: recorder('enableCarrierCollection'),

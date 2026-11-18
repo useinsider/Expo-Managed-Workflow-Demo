@@ -25,7 +25,6 @@ test('initialises the SDK with the placeholder partner and disables data collect
     ['registerWithQuietPermission', false],
     ['setActiveForegroundPushView'],
     ['startTrackingGeofence'],
-    ['enableIDFACollection', false],
     ['enableIpCollection', false],
     ['enableLocationCollection', false],
     ['enableCarrierCollection', false],
